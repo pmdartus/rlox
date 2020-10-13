@@ -1,6 +1,6 @@
-use std::{char, fmt, str};
+use std::{char, fmt, str, error};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
     // Single-character tokens.
     LeftParen,
@@ -51,25 +51,27 @@ pub enum TokenKind {
     EOF,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub line: usize,
 }
 
-pub type ScannerResult = Result<(), ScannerError>;
+pub type ScannerResult = Result<(), ScanError>;
 
 #[derive(Debug)]
-pub struct ScannerError {
+pub struct ScanError {
     msg: &'static str,
     line: usize,
 }
 
-impl fmt::Display for ScannerError {
+impl fmt::Display for ScanError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[line: {}] {}", self.line, self.msg)
     }
 }
+
+impl error::Error for ScanError {}
 
 pub struct Scanner<'a> {
     source: &'a [u8],
@@ -80,7 +82,7 @@ pub struct Scanner<'a> {
 }
 
 impl Scanner<'_> {
-    pub fn tokenize(source: &str) -> Result<Vec<Token>, ScannerError> {
+    pub fn tokenize(source: &str) -> Result<Vec<Token>, ScanError> {
         let mut scanner = Scanner {
             source: source.as_bytes(),
             tokens: Vec::new(),
@@ -307,8 +309,8 @@ impl Scanner<'_> {
         }
     }
 
-    fn get_scanner_error(&self, msg: &'static str) -> ScannerError {
-        ScannerError {
+    fn get_scanner_error(&self, msg: &'static str) -> ScanError {
+        ScanError {
             msg,
             line: self.line,
         }

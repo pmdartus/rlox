@@ -1,10 +1,12 @@
 mod scanner;
+mod parser;
 
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 
 use scanner::Scanner;
+use parser::Parser;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -43,7 +45,9 @@ fn run_prompt() {
     }
 }
 
-fn run(source: &str) {
-    let tokens = Scanner::tokenize(source);
-    // println!("{:?}", tokens);
+fn run(source: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let tokens = Scanner::tokenize(source)?;
+    let expr = Parser::parse(tokens);
+
+    Ok(())
 }
