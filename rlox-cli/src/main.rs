@@ -1,15 +1,12 @@
-mod scanner;
-mod parser;
-mod ast;
-mod interpreter;
+use rlox;
 
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 
-use scanner::Scanner;
-use parser::Parser;
-use interpreter::Interpret;
+use rlox::scanner::Scanner;
+use rlox::parser::Parser;
+use rlox::interpreter::Interpret;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

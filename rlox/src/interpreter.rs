@@ -1,4 +1,4 @@
-use super::ast::{Expr, LiteralValue, BinaryOp, UnaryOp, Visitor};
+use crate::ast::{Expr, LiteralValue, BinaryOp, UnaryOp, Visitor};
 
 #[derive(Debug)]
 pub enum Object {

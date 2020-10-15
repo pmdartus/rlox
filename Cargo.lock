@@ -3,3 +3,11 @@
 [[package]]
 name = "rlox"
 version = "0.1.0"
+
+[[package]]
+name = "rlox-cli"
+version = "0.1.0"
+dependencies = [
+ "rlox 0.1.0",
+]
+
