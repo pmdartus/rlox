@@ -194,7 +194,7 @@ impl Parser {
             Token {
                 kind: TokenKind::Minus,
                 ..
-            } => Some(UnaryOp::Minus),
+            } => Some(UnaryOp::Neg),
             _ => None,
         };
 

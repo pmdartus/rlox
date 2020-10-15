@@ -15,7 +15,7 @@ pub enum BinaryOp {
 #[derive(Debug, PartialEq)]
 pub enum UnaryOp {
     Not,
-    Minus,
+    Neg,
 }
 
 #[derive(Debug, PartialEq)]
