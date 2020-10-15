@@ -1,5 +1,7 @@
 mod scanner;
 mod parser;
+mod ast;
+mod interpreter;
 
 use std::env;
 use std::fs;
@@ -7,6 +9,7 @@ use std::io::{self, Write};
 
 use scanner::Scanner;
 use parser::Parser;
+use interpreter::Interpret;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -47,7 +50,12 @@ fn run_prompt() {
 
 fn run(source: &str) -> Result<(), Box<dyn std::error::Error>> {
     let tokens = Scanner::tokenize(source)?;
-    let expr = Parser::parse(tokens);
+    let expr = Parser::parse(tokens).unwrap();
+
+    let mut interpreter = Interpret::new();
+    let res = interpreter.evaluate(&expr);
+
+    println!("{:?}", res);
 
     Ok(())
 }

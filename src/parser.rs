@@ -1,42 +1,7 @@
+use std::{error, fmt};
+
+use crate::ast::{BinaryOp, Expr, LiteralValue, UnaryOp};
 use crate::scanner::{Token, TokenKind};
-use std::{fmt, error};
-
-#[derive(Debug)]
-pub enum BinaryOp {
-    Plus,
-    Minus,
-    Slash,
-    Star,
-    Equal,
-    NotEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-}
-
-#[derive(Debug)]
-pub enum UnaryOp {
-    Not,
-    Minus,
-}
-
-#[derive(Debug)]
-pub enum Expr {
-    Binary(Box<Expr>, BinaryOp, Box<Expr>),
-    Grouping(Box<Expr>),
-    Literator(Value),
-    Unary(UnaryOp, Box<Expr>),
-}
-
-#[derive(Debug)]
-pub enum Value {
-    Number(f32),
-    String(String),
-    True,
-    False,
-    Nil,
-}
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -106,11 +71,14 @@ impl Parser {
                 } => Some(BinaryOp::Equal),
                 _ => None,
             };
+
             if let Some(operator) = operator {
                 self.advance();
 
                 let right = self.comparison()?;
                 expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            } else {
+                break;
             }
         }
 
@@ -147,6 +115,8 @@ impl Parser {
 
                 let right = self.term()?;
                 expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            } else {
+                break;
             }
         }
 
@@ -175,6 +145,8 @@ impl Parser {
 
                 let right = self.factor()?;
                 expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            } else {
+                break;
             }
         }
 
@@ -203,6 +175,8 @@ impl Parser {
 
                 let right = self.unary()?;
                 expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            } else {
+                break;
             }
         }
 
@@ -241,23 +215,23 @@ impl Parser {
             Token {
                 kind: TokenKind::Number(value),
                 ..
-            } => Ok(Expr::Literator(Value::Number(*value))),
+            } => Ok(Expr::Literal(LiteralValue::Number(*value))),
             Token {
                 kind: TokenKind::String(value),
                 ..
-            } => Ok(Expr::Literator(Value::String(String::from(value)))),
+            } => Ok(Expr::Literal(LiteralValue::String(String::from(value)))),
             Token {
                 kind: TokenKind::True,
                 ..
-            } => Ok(Expr::Literator(Value::True)),
+            } => Ok(Expr::Literal(LiteralValue::True)),
             Token {
                 kind: TokenKind::False,
                 ..
-            } => Ok(Expr::Literator(Value::False)),
+            } => Ok(Expr::Literal(LiteralValue::False)),
             Token {
                 kind: TokenKind::Nil,
                 ..
-            } => Ok(Expr::Literator(Value::Nil)),
+            } => Ok(Expr::Literal(LiteralValue::Nil)),
 
             Token {
                 kind: TokenKind::LeftParen,
@@ -292,5 +266,53 @@ impl Parser {
 
     fn is_at_end(&self) -> bool {
         self.peek().kind == TokenKind::EOF
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_expression() {
+        let expr = Parser::parse(vec![
+            Token {
+                kind: TokenKind::Number(1.0),
+                line: 1,
+            },
+            Token {
+                kind: TokenKind::Plus,
+                line: 1,
+            },
+            Token {
+                kind: TokenKind::Number(1.0),
+                line: 1,
+            },
+            Token {
+                kind: TokenKind::Star,
+                line: 1,
+            },
+            Token {
+                kind: TokenKind::Number(2.0),
+                line: 1,
+            },
+            Token {
+                kind: TokenKind::EOF,
+                line: 1,
+            },
+        ]);
+
+        assert_eq!(
+            expr.unwrap(),
+            Expr::Binary(
+                Box::new(Expr::Literal(LiteralValue::Number(1.0))),
+                BinaryOp::Plus,
+                Box::new(Expr::Binary(
+                    Box::new(Expr::Literal(LiteralValue::Number(1.0))),
+                    BinaryOp::Star,
+                    Box::new(Expr::Literal(LiteralValue::Number(2.0))),
+                ))
+            )
+        );
     }
 }
