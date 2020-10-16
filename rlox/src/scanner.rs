@@ -1,4 +1,4 @@
-use std::{char, fmt, str, error};
+use std::{char, error, fmt, str};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {

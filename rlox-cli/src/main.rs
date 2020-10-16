@@ -4,9 +4,9 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 
-use rlox::scanner::Scanner;
-use rlox::parser::Parser;
 use rlox::interpreter::Interpret;
+use rlox::parser::Parser;
+use rlox::scanner::Scanner;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
