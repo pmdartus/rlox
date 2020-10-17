@@ -46,13 +46,11 @@ fn run_prompt() {
 }
 
 fn run(source: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let tokens = Scanner::tokenize(source)?;
-    let expr = Parser::parse(tokens).unwrap();
+    let tokens = Scanner::scan(source)?;
+    let statements = Parser::parse(tokens).unwrap();
 
     let mut interpreter = Interpret::new();
-    let res = interpreter.evaluate(&expr);
-
-    println!("{:?}", res);
+    let res = interpreter.interpret(&statements);
 
     Ok(())
 }

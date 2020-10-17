@@ -82,7 +82,7 @@ pub struct Scanner<'a> {
 }
 
 impl Scanner<'_> {
-    pub fn tokenize(source: &str) -> Result<Vec<Token>, ScanError> {
+    pub fn scan(source: &str) -> Result<Vec<Token>, ScanError> {
         let mut scanner = Scanner {
             source: source.as_bytes(),
             tokens: Vec::new(),
@@ -333,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_expression() {
-        let tokens = Scanner::tokenize("foo.bar.baz");
+        let tokens = Scanner::scan("foo.bar.baz");
 
         assert_eq!(
             tokens.unwrap(),
@@ -368,7 +368,7 @@ mod tests {
 
     #[test]
     fn test_function() {
-        let tokens = Scanner::tokenize("fun foo(a) { return a; }");
+        let tokens = Scanner::scan("fun foo(a) { return a; }");
 
         assert_eq!(
             tokens.unwrap(),
