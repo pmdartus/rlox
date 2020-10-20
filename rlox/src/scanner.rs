@@ -1,4 +1,5 @@
-use std::{char, error, fmt, str};
+use std::{char, str};
+use crate::result::{RloxResult, Error};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
@@ -57,22 +58,6 @@ pub struct Token {
     pub line: usize,
 }
 
-pub type ScannerResult = Result<(), ScanError>;
-
-#[derive(Debug)]
-pub struct ScanError {
-    msg: &'static str,
-    line: usize,
-}
-
-impl fmt::Display for ScanError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[line: {}] {}", self.line, self.msg)
-    }
-}
-
-impl error::Error for ScanError {}
-
 pub struct Scanner<'a> {
     source: &'a [u8],
     tokens: Vec<Token>,
@@ -82,7 +67,7 @@ pub struct Scanner<'a> {
 }
 
 impl Scanner<'_> {
-    pub fn scan(source: &str) -> Result<Vec<Token>, ScanError> {
+    pub fn scan(source: &str) -> RloxResult<Vec<Token>> {
         let mut scanner = Scanner {
             source: source.as_bytes(),
             tokens: Vec::new(),
@@ -99,7 +84,7 @@ impl Scanner<'_> {
         self.current >= self.source.len()
     }
 
-    fn scan_tokens(&mut self) -> ScannerResult {
+    fn scan_tokens(&mut self) -> RloxResult<()> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token()?;
@@ -109,7 +94,7 @@ impl Scanner<'_> {
         Ok(())
     }
 
-    fn scan_token(&mut self) -> ScannerResult {
+    fn scan_token(&mut self) -> RloxResult<()> {
         let c = self.advance();
 
         match c {
@@ -123,6 +108,7 @@ impl Scanner<'_> {
             '+' => self.add_token(TokenKind::Plus),
             ';' => self.add_token(TokenKind::Semicolon),
             '*' => self.add_token(TokenKind::Star),
+            
             '!' => {
                 if self.matches('=') {
                     self.add_token(TokenKind::BangEqual)
@@ -165,22 +151,18 @@ impl Scanner<'_> {
             '\n' => self.line += 1,
 
             '"' => self.process_string()?,
+            c if Self::is_digit(c) => self.process_number()?,
+            c if Self::is_alpha(c) => self.process_identifier()?,
 
             _ => {
-                if Self::is_digit(c) {
-                    self.process_number()?;
-                } else if Self::is_alpha(c) {
-                    self.process_identifier()?;
-                } else {
-                    return Err(self.get_scanner_error("Unexpected character."));
-                }
+                return Err(self.err("Unexpected character."));
             }
         }
 
         Ok(())
     }
 
-    fn process_string(&mut self) -> ScannerResult {
+    fn process_string(&mut self) -> RloxResult<()> {
         while self.peek() != Some('"') && !self.is_at_end() {
             if self.peek() == Some('\n') {
                 self.line += 1
@@ -190,20 +172,20 @@ impl Scanner<'_> {
         }
 
         if self.is_at_end() {
-            return Err(self.get_scanner_error("Unterminated string"));
+            return Err(self.err("Unterminated string"));
         }
 
         self.advance();
         self.add_token(TokenKind::String(
             str::from_utf8(&self.source[self.start + 1..self.current - 1])
-                .or(Err(self.get_scanner_error("Invalid string")))?
+                .map_err(|_| self.err("Invalid string"))?
                 .to_string(),
         ));
 
         Ok(())
     }
 
-    fn process_number(&mut self) -> ScannerResult {
+    fn process_number(&mut self) -> RloxResult<()> {
         while let Some(c) = self.peek() {
             if Self::is_digit(c) {
                 self.advance();
@@ -229,15 +211,15 @@ impl Scanner<'_> {
 
         self.add_token(TokenKind::Number(
             str::from_utf8(&self.source[self.start..self.current])
-                .or(Err(self.get_scanner_error("Invalid number.")))?
+                .map_err(|_| self.err("Invalid number."))?
                 .parse()
-                .or(Err(self.get_scanner_error("Invalid number.")))?,
+                .map_err(|_| self.err("Invalid number."))?,
         ));
 
         Ok(())
     }
 
-    fn process_identifier(&mut self) -> ScannerResult {
+    fn process_identifier(&mut self) -> RloxResult<()> {
         while let Some(c) = self.peek() {
             if Self::is_alpha_numeric(c) {
                 self.advance();
@@ -247,7 +229,7 @@ impl Scanner<'_> {
         }
 
         let value = str::from_utf8(&self.source[self.start..self.current])
-            .or(Err(self.get_scanner_error("Invalid string.")))?;
+            .map_err(|_| self.err("Invalid string."))?;
 
         self.add_token(match value {
             "and" => TokenKind::And,
@@ -309,115 +291,19 @@ impl Scanner<'_> {
         }
     }
 
-    fn get_scanner_error(&self, msg: &'static str) -> ScanError {
-        ScanError {
-            msg,
-            line: self.line,
-        }
+    fn err(&self, msg: &str) -> Error {
+        Error::Scanner(self.line, String::from(msg))
     }
 
     fn is_digit(c: char) -> bool {
         c.is_digit(10)
     }
+
     fn is_alpha(c: char) -> bool {
         c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_'
     }
+
     fn is_alpha_numeric(c: char) -> bool {
         Self::is_alpha(c) || Self::is_digit(c)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_expression() {
-        let tokens = Scanner::scan("foo.bar.baz");
-
-        assert_eq!(
-            tokens.unwrap(),
-            vec!(
-                Token {
-                    kind: TokenKind::Identifier(String::from("foo")),
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Dot,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Identifier(String::from("bar")),
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Dot,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Identifier(String::from("baz")),
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::EOF,
-                    line: 1
-                }
-            )
-        );
-    }
-
-    #[test]
-    fn test_function() {
-        let tokens = Scanner::scan("fun foo(a) { return a; }");
-
-        assert_eq!(
-            tokens.unwrap(),
-            vec!(
-                Token {
-                    kind: TokenKind::Function,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Identifier(String::from("foo")),
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::LeftParen,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Identifier(String::from("a")),
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::RightParen,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::LeftBrace,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Return,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Identifier(String::from("a")),
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::Semicolon,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::RightBrace,
-                    line: 1
-                },
-                Token {
-                    kind: TokenKind::EOF,
-                    line: 1
-                }
-            )
-        );
     }
 }

@@ -1,0 +1,19 @@
+print "Operators";
+print 4 + 2;
+print 4 - 2;
+print 4 * 2;
+print 4 / 2;
+
+print "Precedence";
+print 4 * 2 + 1;
+print 1 + 4 * 2;
+
+print "Grouping";
+print (1 + 4) * 2;
+print 2 * (1 + 4);
+
+print "Float";
+print 1.5 + 2.5;
+print 1.5 - 0.5;
+print 0.33 * 3;
+print 1 / 3;

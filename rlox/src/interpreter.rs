@@ -1,83 +1,23 @@
-use std::{f32, fmt};
-
+use std::io;
+use crate::environment::{Environment};
 use crate::ast::{BinaryOp, Expr, LiteralValue, UnaryOp, ExprVisitor, Stmt, StmtVisitor};
+use crate::object::Object;
+use crate::result::{RloxResult,Error};
 
-#[derive(Debug)]
-pub enum Object {
-    Number(f32),
-    String(String),
-    True,
-    False,
-    Nil,
+pub struct Interpret<W: io::Write> {
+    out: W,
+    environment: Environment,
 }
 
-impl Object {
-    fn is_truthy(&self) -> bool {
-        match self {
-            Object::Nil | Object::False => false,
-            Object::True | _ => true,
-        }
-    }
-}
-
-impl From<&LiteralValue> for Object {
-    fn from(value: &LiteralValue) -> Self {
-        match value {
-            LiteralValue::Number(value) => Object::Number(*value),
-            LiteralValue::String(value) => Object::String(String::from(value)),
-            LiteralValue::True => Object::True,
-            LiteralValue::False => Object::False,
-            LiteralValue::Nil => Object::Nil,
-        }
-    }
-}
-
-impl From<bool> for Object {
-    fn from(value: bool) -> Self {
-        match value {
-            true => Object::True,
-            false => Object::False,
-        }
-    }
-}
-
-impl fmt::Display for Object {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Object::Number(value)  => write!(f, "{}", value),
-            Object::String(value) => write!(f, "{}", value),
-            Object::True => write!(f, "true"),
-            Object::False => write!(f, "false"),
-            Object::Nil => write!(f, "nil"),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RuntimeException {
-    // token: Token,
-    msg: String,
-}
-
-impl RuntimeException {
-    fn new(/*token: Token,*/ msg: &str) -> Self {
+impl<W: io::Write> Interpret<W> {
+    pub fn new(out: W) -> Self {
         Self {
-            // token,
-            msg: String::from(msg),
+            environment: Environment::new(),
+            out,
         }
     }
-}
 
-type InterpreterResult<T> = Result<T, RuntimeException>;
-
-pub struct Interpret {}
-
-impl Interpret {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> InterpreterResult<()> {
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> RloxResult<()> {
         for statement in statements {
             self.execute(statement)?;
         }
@@ -85,22 +25,26 @@ impl Interpret {
         Ok(())
     }
 
-    fn execute(&mut self, statement: &Stmt) -> InterpreterResult<()> {
+    fn execute(&mut self, statement: &Stmt) -> RloxResult<()> {
         statement.accept(self)
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> InterpreterResult<Object> {
+    fn evaluate(&mut self, expr: &Expr) -> RloxResult<Object> {
         expr.accept(self)
+    }
+
+    fn err(&self, msg: &str) -> Error {
+        Error::Runtime(0, String::from(msg))
     }
 }
 
-impl ExprVisitor<InterpreterResult<Object>> for Interpret {
-    fn visit_binary(
+impl<W: io::Write> ExprVisitor<RloxResult<Object>> for Interpret<W> {
+    fn visit_binary_expr(
         &mut self,
         left: &Expr,
         op: &BinaryOp,
         right: &Expr,
-    ) -> InterpreterResult<Object> {
+    ) -> RloxResult<Object> {
         let left = self.evaluate(left)?;
         let right = self.evaluate(right)?;
 
@@ -108,21 +52,21 @@ impl ExprVisitor<InterpreterResult<Object>> for Interpret {
             BinaryOp::Plus => match (left, right) {
                 (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a + b)),
                 (Object::String(a), Object::String(b)) => Ok(Object::String(format!("{}{}", a, b))),
-                (_, _) => Err(RuntimeException::new(
+                (_, _) => Err(self.err(
                     "Operands must be numbers or strings.",
                 )),
             },
             BinaryOp::Minus => match (left, right) {
                 (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a - b)),
-                (_, _) => Err(RuntimeException::new("Operands must be numbers.")),
+                (_, _) => Err(self.err("Operands must be numbers.")),
             },
             BinaryOp::Star => match (left, right) {
                 (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a * b)),
-                (_, _) => Err(RuntimeException::new("Operands must be numbers.")),
+                (_, _) => Err(self.err("Operands must be numbers.")),
             },
             BinaryOp::Slash => match (left, right) {
                 (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a / b)),
-                (_, _) => Err(RuntimeException::new("Operands must be numbers.")),
+                (_, _) => Err(self.err("Operands must be numbers.")),
             },
             BinaryOp::Equal
             | BinaryOp::NotEqual
@@ -137,40 +81,56 @@ impl ExprVisitor<InterpreterResult<Object>> for Interpret {
                         Ok(Object::False)
                     }
                 }
-                (_, _) => Err(RuntimeException::new("Operands must be numbers.")),
+                (_, _) => Err(self.err("Operands must be numbers.")),
             },
         }
     }
 
-    fn visit_unary(&mut self, op: &UnaryOp, right: &Expr) -> InterpreterResult<Object> {
+    fn visit_unary_expr(&mut self, op: &UnaryOp, right: &Expr) -> RloxResult<Object> {
         let right = self.evaluate(right)?;
 
         match op {
             UnaryOp::Neg => Ok(Object::from(!right.is_truthy())),
             UnaryOp::Not => match right {
                 Object::Number(value) => Ok(Object::Number(value * -1.0)),
-                _ => Err(RuntimeException::new("Operand must be a number.")),
+                _ => Err(self.err("Operand must be a number.")),
             },
         }
     }
-    fn visit_grouping(&mut self, expr: &Expr) -> InterpreterResult<Object> {
+    fn visit_grouping_expr(&mut self, expr: &Expr) -> RloxResult<Object> {
         self.evaluate(expr)
     }
 
-    fn visit_literal(&mut self, value: &LiteralValue) -> InterpreterResult<Object> {
+    fn visit_literal_expr(&mut self, value: &LiteralValue) -> RloxResult<Object> {
         Ok(Object::from(value))
+    }
+
+    fn visit_variable_expr(&mut self, name: &str) -> RloxResult<Object> {
+        // self.environment.get(name)
+        unimplemented!();
     }
 }
 
-impl StmtVisitor<InterpreterResult<()>> for Interpret {
-    fn visit_expression_stmt(&mut self, expr: &Expr) -> InterpreterResult<()> {
+impl<W: io::Write> StmtVisitor<RloxResult<()>> for Interpret<W> {
+    fn visit_expression_stmt(&mut self, expr: &Expr) -> RloxResult<()> {
         self.evaluate(expr)?;
         Ok(())
     }
 
-    fn visit_print_stmt(&mut self, expr: &Expr) -> InterpreterResult<()> {
+    fn visit_var_stmt(&mut self, name: &str, intializer: &Option<Box<Expr>>) -> RloxResult<()> {
+        let value = match intializer {
+            Some(expr) => self.evaluate(expr)?,
+            None => Object::Nil,
+        };
+
+        // TODO: Avoid string copy
+        self.environment.define(String::from(name), value);
+        Ok(())
+    }
+
+    fn visit_print_stmt(&mut self, expr: &Expr) -> RloxResult<()> {
         let value = self.evaluate(expr)?;
-        println!("{}", value);
+        writeln!(self.out, "{}", value);
         Ok(())
     }
 }

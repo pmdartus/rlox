@@ -4,9 +4,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 
-use rlox::interpreter::Interpret;
-use rlox::parser::Parser;
-use rlox::scanner::Scanner;
+use rlox::{interpreter::Interpret, parser::Parser, result::Error, scanner::Scanner};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -45,12 +43,13 @@ fn run_prompt() {
     }
 }
 
-fn run(source: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn run(source: &str) -> Result<(), Error> {
     let tokens = Scanner::scan(source)?;
-    let statements = Parser::parse(tokens).unwrap();
+    let statements = Parser::parse(tokens)
+        .map_err(|e| e[0].clone())?;
 
     let mut interpreter = Interpret::new();
-    let res = interpreter.interpret(&statements);
+    let res = interpreter.interpret(&statements)?;
 
     Ok(())
 }

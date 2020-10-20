@@ -1,37 +1,15 @@
-use std::{error, fmt};
-
-use crate::ast::{BinaryOp, LiteralValue, UnaryOp, Expr, Stmt};
+use crate::ast::{BinaryOp, Expr, LiteralValue, Stmt, UnaryOp};
+use crate::result::{Error, RloxResult};
 use crate::scanner::{Token, TokenKind};
-
-#[derive(Debug)]
-pub enum ParseError {
-    UnexpectedToken(Token, &'static str),
-    ExpectedExpression(Token),
-}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (token, msg) = match self {
-            ParseError::UnexpectedToken(token, msg) => (token, msg),
-            ParseError::ExpectedExpression(token) => (token, &"Expected expression"),
-        };
-
-        write!(f, "[line: {}] {}", token.line, msg)
-    }
-}
-
-impl error::Error for ParseError {}
-
-type ParseResult<T> = Result<T, ParseError>;
 
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
-    errors: Vec<ParseError>,
+    errors: Vec<Error>,
 }
 
 impl Parser {
-    pub fn parse(tokens: Vec<Token>) -> Result<Vec<Stmt>, Vec<ParseError>> {
+    pub fn parse(tokens: Vec<Token>) -> Result<Vec<Stmt>, Vec<Error>> {
         let mut parser = Parser {
             tokens,
             current: 0,
@@ -47,34 +25,65 @@ impl Parser {
         }
     }
 
-    /// program        → statement* EOF ;
     fn program(&mut self) -> Vec<Stmt> {
-        let mut statements = vec!();
+        let mut statements = vec![];
 
         while !self.is_at_end() {
-            match self.statement() {
+            match self.declaration() {
                 Ok(statement) => statements.push(statement),
-                Err(err) => self.errors.push(err),
+                Err(err) => {
+                    //TODO: Add synchronization when handling error
+                    self.errors.push(err)
+                }
             }
         }
 
         statements
     }
 
-    /// statement      → exprStmt
-    ///                | printStmt ;
-    fn statement(&mut self) -> ParseResult<Stmt> {
-        match self.peek() {
-            Token {
-                kind: TokenKind::Print,
-                ..
-            } => self.print_statement(),
-            _ => self.expression_statement()
+    fn declaration(&mut self) -> RloxResult<Stmt> {
+        match self.peek().kind {
+            TokenKind::Var => {
+                self.advance();
+                self.var_declaration()
+            }
+            _ => self.statement(),
         }
     }
 
-    /// printStmt      → "print" expression ";" ;
-    fn print_statement(&mut self) -> ParseResult<Stmt> {
+    fn var_declaration(&mut self) -> RloxResult<Stmt> {
+        // TODO: Clean this up.
+        let name = match &self.peek().kind {
+            TokenKind::Identifier(name) => Ok(String::from(name)),
+            _ => Err(self.err("Expected variable name.")),
+        }?;
+
+        self.advance();
+
+        let initializer = match self.peek().kind {
+            TokenKind::Equal => {
+                self.advance();
+                Some(Box::new(self.expression()?))
+            }
+            _ => None,
+        };
+
+        self.consume(
+            &TokenKind::Semicolon,
+            "Expected ';' after variable declaration.",
+        )?;
+
+        Ok(Stmt::Var(name, initializer))
+    }
+
+    fn statement(&mut self) -> RloxResult<Stmt> {
+        match self.peek().kind {
+            TokenKind::Print => self.print_statement(),
+            _ => self.expression_statement(),
+        }
+    }
+
+    fn print_statement(&mut self) -> RloxResult<Stmt> {
         self.consume(&TokenKind::Print, "Expected print")?;
         let expr = self.expression()?;
         self.consume(&TokenKind::Semicolon, "Expected ';' after value")?;
@@ -82,33 +91,24 @@ impl Parser {
         Ok(Stmt::Print(Box::new(expr)))
     }
 
-    /// exprStmt       → expression ";" ;
-    fn expression_statement(&mut self) -> ParseResult<Stmt> {
+    fn expression_statement(&mut self) -> RloxResult<Stmt> {
         let expr = self.expression()?;
         self.consume(&TokenKind::Semicolon, "Expected ';' after expression")?;
 
         Ok(Stmt::Expression(Box::new(expr)))
     }
 
-    /// expression     → equality ;
-    fn expression(&mut self) -> ParseResult<Expr> {
+    fn expression(&mut self) -> RloxResult<Expr> {
         self.equality()
     }
 
-    /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality(&mut self) -> ParseResult<Expr> {
+    fn equality(&mut self) -> RloxResult<Expr> {
         let mut expr = self.comparison()?;
 
         while !self.is_at_end() {
-            let operator = match self.peek() {
-                Token {
-                    kind: TokenKind::BangEqual,
-                    ..
-                } => Some(BinaryOp::NotEqual),
-                Token {
-                    kind: TokenKind::EqualEqual,
-                    ..
-                } => Some(BinaryOp::Equal),
+            let operator = match self.peek().kind {
+                TokenKind::BangEqual => Some(BinaryOp::NotEqual),
+                TokenKind::EqualEqual => Some(BinaryOp::Equal),
                 _ => None,
             };
 
@@ -125,28 +125,15 @@ impl Parser {
         Ok(expr)
     }
 
-    /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    fn comparison(&mut self) -> ParseResult<Expr> {
+    fn comparison(&mut self) -> RloxResult<Expr> {
         let mut expr = self.term()?;
 
         while !self.is_at_end() {
-            let operator = match self.peek() {
-                Token {
-                    kind: TokenKind::Less,
-                    ..
-                } => Some(BinaryOp::Less),
-                Token {
-                    kind: TokenKind::LessEqual,
-                    ..
-                } => Some(BinaryOp::LessEqual),
-                Token {
-                    kind: TokenKind::Greater,
-                    ..
-                } => Some(BinaryOp::Greater),
-                Token {
-                    kind: TokenKind::GreaterEqual,
-                    ..
-                } => Some(BinaryOp::GreaterEqual),
+            let operator = match self.peek().kind {
+                TokenKind::Less => Some(BinaryOp::Less),
+                TokenKind::LessEqual => Some(BinaryOp::LessEqual),
+                TokenKind::Greater => Some(BinaryOp::Greater),
+                TokenKind::GreaterEqual => Some(BinaryOp::GreaterEqual),
                 _ => None,
             };
 
@@ -163,20 +150,13 @@ impl Parser {
         Ok(expr)
     }
 
-    /// term           → factor ( ( "-" | "+" ) factor )* ;
-    fn term(&mut self) -> ParseResult<Expr> {
+    fn term(&mut self) -> RloxResult<Expr> {
         let mut expr = self.factor()?;
 
         while !self.is_at_end() {
-            let operator = match self.peek() {
-                Token {
-                    kind: TokenKind::Plus,
-                    ..
-                } => Some(BinaryOp::Plus),
-                Token {
-                    kind: TokenKind::Minus,
-                    ..
-                } => Some(BinaryOp::Minus),
+            let operator = match self.peek().kind {
+                TokenKind::Plus => Some(BinaryOp::Plus),
+                TokenKind::Minus => Some(BinaryOp::Minus),
                 _ => None,
             };
 
@@ -193,20 +173,13 @@ impl Parser {
         Ok(expr)
     }
 
-    /// factor         → unary ( ( "/" | "*" ) unary )* ;
-    fn factor(&mut self) -> ParseResult<Expr> {
+    fn factor(&mut self) -> RloxResult<Expr> {
         let mut expr = self.unary()?;
 
         while !self.is_at_end() {
-            let operator = match self.peek() {
-                Token {
-                    kind: TokenKind::Slash,
-                    ..
-                } => Some(BinaryOp::Slash),
-                Token {
-                    kind: TokenKind::Star,
-                    ..
-                } => Some(BinaryOp::Star),
+            let operator = match self.peek().kind {
+                TokenKind::Slash => Some(BinaryOp::Slash),
+                TokenKind::Star => Some(BinaryOp::Star),
                 _ => None,
             };
 
@@ -223,18 +196,10 @@ impl Parser {
         Ok(expr)
     }
 
-    /// unary          → ( "!" | "-" ) unary
-    ///                  | primary ;
-    fn unary(&mut self) -> ParseResult<Expr> {
-        let operator = match self.peek() {
-            Token {
-                kind: TokenKind::Bang,
-                ..
-            } => Some(UnaryOp::Not),
-            Token {
-                kind: TokenKind::Minus,
-                ..
-            } => Some(UnaryOp::Neg),
+    fn unary(&mut self) -> RloxResult<Expr> {
+        let operator = match self.peek().kind {
+            TokenKind::Bang => Some(UnaryOp::Not),
+            TokenKind::Minus => Some(UnaryOp::Neg),
             _ => None,
         };
 
@@ -248,42 +213,24 @@ impl Parser {
         }
     }
 
-    /// primary        → NUMBER | STRING | "true" | "false" | "nil"
-    ///                  | "(" expression ")" ;
-    fn primary(&mut self) -> ParseResult<Expr> {
-        match self.advance() {
-            Token {
-                kind: TokenKind::Number(value),
-                ..
-            } => Ok(Expr::Literal(LiteralValue::Number(*value))),
-            Token {
-                kind: TokenKind::String(value),
-                ..
-            } => Ok(Expr::Literal(LiteralValue::String(String::from(value)))),
-            Token {
-                kind: TokenKind::True,
-                ..
-            } => Ok(Expr::Literal(LiteralValue::True)),
-            Token {
-                kind: TokenKind::False,
-                ..
-            } => Ok(Expr::Literal(LiteralValue::False)),
-            Token {
-                kind: TokenKind::Nil,
-                ..
-            } => Ok(Expr::Literal(LiteralValue::Nil)),
-
-            Token {
-                kind: TokenKind::LeftParen,
-                ..
-            } => {
+    fn primary(&mut self) -> RloxResult<Expr> {
+        match &self.advance().kind {
+            TokenKind::Number(value) => Ok(Expr::Literal(LiteralValue::Number(*value))),
+            TokenKind::String(value) => {
+                Ok(Expr::Literal(LiteralValue::String(String::from(value))))
+            }
+            TokenKind::True => Ok(Expr::Literal(LiteralValue::True)),
+            TokenKind::False => Ok(Expr::Literal(LiteralValue::False)),
+            TokenKind::Nil => Ok(Expr::Literal(LiteralValue::Nil)),
+            TokenKind::Identifier(name) => Ok(Expr::Variable(String::from(name))),
+            TokenKind::LeftParen => {
                 let expr = self.expression()?;
                 self.consume(&TokenKind::RightParen, "Expected ')' after expression.")?;
 
                 Ok(Expr::Grouping(Box::new(expr)))
             }
 
-            _ => Err(ParseError::ExpectedExpression(self.peek().clone())),
+            _ => Err(self.err("Expected expression")),
         }
     }
 
@@ -296,63 +243,19 @@ impl Parser {
         &self.tokens[self.current]
     }
 
-    fn consume(&mut self, kind: &TokenKind, msg: &'static str) -> ParseResult<&Token> {
+    fn consume(&mut self, kind: &TokenKind, msg: &'static str) -> RloxResult<&Token> {
         if &self.peek().kind == kind {
             Ok(self.advance())
         } else {
-            Err(ParseError::UnexpectedToken(self.peek().clone(), msg))
+            Err(self.err(msg))
         }
     }
 
     fn is_at_end(&self) -> bool {
         self.peek().kind == TokenKind::EOF
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_expression() {
-        let expr = Parser::parse(vec![
-            Token {
-                kind: TokenKind::Number(1.0),
-                line: 1,
-            },
-            Token {
-                kind: TokenKind::Plus,
-                line: 1,
-            },
-            Token {
-                kind: TokenKind::Number(1.0),
-                line: 1,
-            },
-            Token {
-                kind: TokenKind::Star,
-                line: 1,
-            },
-            Token {
-                kind: TokenKind::Number(2.0),
-                line: 1,
-            },
-            Token {
-                kind: TokenKind::EOF,
-                line: 1,
-            },
-        ]);
-
-        assert_eq!(
-            expr.unwrap(),
-            Expr::Binary(
-                Box::new(Expr::Literal(LiteralValue::Number(1.0))),
-                BinaryOp::Plus,
-                Box::new(Expr::Binary(
-                    Box::new(Expr::Literal(LiteralValue::Number(1.0))),
-                    BinaryOp::Star,
-                    Box::new(Expr::Literal(LiteralValue::Number(2.0))),
-                ))
-            )
-        );
+    fn err(&self, msg: &str) -> Error {
+        Error::Parser(self.peek().line, String::from(msg))
     }
 }
