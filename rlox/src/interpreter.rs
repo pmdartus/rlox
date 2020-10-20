@@ -1,8 +1,9 @@
-use std::io;
-use crate::environment::{Environment};
-use crate::ast::{BinaryOp, Expr, LiteralValue, UnaryOp, ExprVisitor, Stmt, StmtVisitor};
+use std::{cmp, io};
+
+use crate::ast::{BinaryOp, Expr, ExprVisitor, LiteralValue, Stmt, StmtVisitor, UnaryOp};
+use crate::environment::Environment;
 use crate::object::Object;
-use crate::result::{RloxResult,Error};
+use crate::result::{Error, RloxResult};
 
 pub struct Interpret<W: io::Write> {
     out: W,
@@ -52,9 +53,7 @@ impl<W: io::Write> ExprVisitor<RloxResult<Object>> for Interpret<W> {
             BinaryOp::Plus => match (left, right) {
                 (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a + b)),
                 (Object::String(a), Object::String(b)) => Ok(Object::String(format!("{}{}", a, b))),
-                (_, _) => Err(self.err(
-                    "Operands must be numbers or strings.",
-                )),
+                (_, _) => Err(self.err("Operands must be numbers or strings.")),
             },
             BinaryOp::Minus => match (left, right) {
                 (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a - b)),
@@ -68,20 +67,45 @@ impl<W: io::Write> ExprVisitor<RloxResult<Object>> for Interpret<W> {
                 (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a / b)),
                 (_, _) => Err(self.err("Operands must be numbers.")),
             },
-            BinaryOp::Equal
-            | BinaryOp::NotEqual
-            | BinaryOp::Greater
-            | BinaryOp::GreaterEqual
-            | BinaryOp::Less
-            | BinaryOp::LessEqual => match (left, right) {
-                (Object::Number(a), Object::Number(b)) => {
-                    if a == b {
-                        Ok(Object::True)
-                    } else {
-                        Ok(Object::False)
-                    }
-                }
-                (_, _) => Err(self.err("Operands must be numbers.")),
+            BinaryOp::Equal => match left.partial_cmp(&right) {
+                Some(cmp::Ordering::Equal) => Ok(Object::True),
+                _ => Ok(Object::False),
+            },
+            BinaryOp::NotEqual => match left.partial_cmp(&right) {
+                Some(cmp::Ordering::Equal) => Ok(Object::False),
+                _ => Ok(Object::True),
+            },
+            BinaryOp::Greater => match left.partial_cmp(&right) {
+                Some(cmp::Ordering::Greater) => Ok(Object::True),
+                Some(_) => Ok(Object::False),
+                _ => Err(self.err(&format!(
+                    "Invalid comparison between types (left: {:?}, right: {:?}).",
+                    left, right
+                ))),
+            },
+            BinaryOp::GreaterEqual => match left.partial_cmp(&right) {
+                Some(cmp::Ordering::Greater) | Some(cmp::Ordering::Equal) => Ok(Object::True),
+                Some(_) => Ok(Object::False),
+                _ => Err(self.err(&format!(
+                    "Invalid comparison between types (left: {:?}, right: {:?}).",
+                    left, right
+                ))),
+            },
+            BinaryOp::Less => match left.partial_cmp(&right) {
+                Some(cmp::Ordering::Less) => Ok(Object::True),
+                Some(_) => Ok(Object::False),
+                _ => Err(self.err(&format!(
+                    "Invalid comparison between types (left: {:?}, right: {:?}).",
+                    left, right
+                ))),
+            },
+            BinaryOp::LessEqual => match left.partial_cmp(&right) {
+                Some(cmp::Ordering::Less) | Some(cmp::Ordering::Equal) => Ok(Object::True),
+                Some(_) => Ok(Object::False),
+                _ => Err(self.err(&format!(
+                    "Invalid comparison between types (left: {:?}, right: {:?}).",
+                    left, right
+                ))),
             },
         }
     }

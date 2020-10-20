@@ -1,5 +1,6 @@
+use std::{cmp, fmt};
+
 use crate::ast::LiteralValue;
-use std::fmt;
 
 #[derive(Debug)]
 pub enum Object {
@@ -48,6 +49,32 @@ impl fmt::Display for Object {
             Object::True => write!(f, "true"),
             Object::False => write!(f, "false"),
             Object::Nil => write!(f, "nil"),
+        }
+    }
+}
+
+impl cmp::PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Object::True, Object::True)
+            | (Object::False, Object::False)
+            | (Object::Nil, Object::Nil) => true,
+            (Object::Number(a), Object::Number(b)) if a.eq(b) => true,
+            (Object::String(a), Object::String(b)) if a.eq(b) => true,
+            _ => false,
+        }
+    }
+}
+
+impl cmp::PartialOrd for Object {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        match (self, other) {
+            (Object::True, Object::True)
+            | (Object::False, Object::False)
+            | (Object::Nil, Object::Nil) => Some(cmp::Ordering::Equal),
+            (Object::Number(a), Object::Number(b)) => a.partial_cmp(b),
+            (Object::String(a), Object::String(b)) => a.partial_cmp(b),
+            _ => None,
         }
     }
 }

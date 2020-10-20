@@ -1,5 +1,6 @@
 use std::{char, str};
-use crate::result::{RloxResult, Error};
+
+use crate::result::{Error, RloxResult};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
@@ -108,7 +109,7 @@ impl Scanner<'_> {
             '+' => self.add_token(TokenKind::Plus),
             ';' => self.add_token(TokenKind::Semicolon),
             '*' => self.add_token(TokenKind::Star),
-            
+
             '!' => {
                 if self.matches('=') {
                     self.add_token(TokenKind::BangEqual)

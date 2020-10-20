@@ -11,7 +11,7 @@ pub enum Error {
     /// Error returned if the parser encounters an error.
     Parser(usize, String),
     /// Error returned if the interpreter encounters an error.
-    Runtime(usize, String)
+    Runtime(usize, String),
 }
 
 impl fmt::Display for Error {

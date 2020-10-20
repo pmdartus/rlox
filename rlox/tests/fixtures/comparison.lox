@@ -1,4 +1,28 @@
 print "Equals (==)";
 print 1 == 1;
-print 1 == 1.0;
-print 1 == true;
+print true == true;
+print false == false;
+print nil == nil;
+print "foo" == "foo";
+print 1 == 2;
+print true == false;
+
+print "Greater (>)";
+print 2 > 1;
+print 1 > 1;
+print 0 > 1;
+
+print "Greater or equals (>=)";
+print 2 >= 1;
+print 1 >= 1;
+print 0 >= 1;
+
+print "Less (<)";
+print 2 < 1;
+print 1 < 1;
+print 0 < 1;
+
+print "Less (<=)";
+print 2 <= 1;
+print 1 <= 1;
+print 0 <= 1;

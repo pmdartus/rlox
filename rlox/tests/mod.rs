@@ -25,8 +25,7 @@ fn run(in_file: &str) {
     let actual_out_str = str::from_utf8(&actual_out).unwrap();
     let expected_out_str = expected_out.unwrap();
     assert_eq!(
-        actual_out_str,
-        expected_out_str,
+        actual_out_str, expected_out_str,
         "Actual and expected input don't match"
     );
 }

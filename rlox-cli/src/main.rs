@@ -45,8 +45,7 @@ fn run_prompt() {
 
 fn run(source: &str) -> Result<(), Error> {
     let tokens = Scanner::scan(source)?;
-    let statements = Parser::parse(tokens)
-        .map_err(|e| e[0].clone())?;
+    let statements = Parser::parse(tokens).map_err(|e| e[0].clone())?;
 
     let mut interpreter = Interpret::new();
     let res = interpreter.interpret(&statements)?;

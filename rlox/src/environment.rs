@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use crate::object::Object;
 
 pub struct Environment {
@@ -8,7 +9,7 @@ pub struct Environment {
 impl Environment {
     pub fn new() -> Self {
         Self {
-            values: HashMap::new()
+            values: HashMap::new(),
         }
     }
 
@@ -19,7 +20,7 @@ impl Environment {
     pub fn get(&self, name: &str) -> Result<&Object, String> {
         match self.values.get(name) {
             Some(obj) => Ok(obj),
-            None => Err(format!("Undefined variable '{}'.", name))
+            None => Err(format!("Undefined variable '{}'.", name)),
         }
     }
 }
