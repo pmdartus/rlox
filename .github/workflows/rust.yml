@@ -16,7 +16,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
+
+    - name: Install build dependencies
+      run: rustup component add clippy
+
+      - name: Build
       run: cargo build --verbose
+
+      - name: Lint
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
     - name: Run tests
       run: cargo test --verbose
