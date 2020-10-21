@@ -19,7 +19,7 @@ impl<W: io::Write> Interpreter<W> {
         }
     }
 
-    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> RloxResult<()> {
+    pub fn interpret(&mut self, statements: &[Stmt]) -> RloxResult<()> {
         for statement in statements {
             self.execute(statement)?;
         }
