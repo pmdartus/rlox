@@ -53,8 +53,9 @@ impl Parser {
 
     fn var_declaration(&mut self) -> RloxResult<Stmt> {
         // TODO: Clean this up.
-        let name = match &self.peek().kind {
-            TokenKind::Identifier(name) => Ok(String::from(name)),
+        let peeked = self.peek();
+        let name = match &peeked.kind {
+            TokenKind::Identifier(_) => Ok(peeked.clone()),
             _ => Err(self.err("Expected variable name.")),
         }?;
 
@@ -214,7 +215,9 @@ impl Parser {
     }
 
     fn primary(&mut self) -> RloxResult<Expr> {
-        match &self.advance().kind {
+        let token = self.advance();
+        
+        match &token.kind {
             TokenKind::Number(value) => Ok(Expr::Literal(LiteralValue::Number(*value))),
             TokenKind::String(value) => {
                 Ok(Expr::Literal(LiteralValue::String(String::from(value))))
@@ -222,7 +225,7 @@ impl Parser {
             TokenKind::True => Ok(Expr::Literal(LiteralValue::True)),
             TokenKind::False => Ok(Expr::Literal(LiteralValue::False)),
             TokenKind::Nil => Ok(Expr::Literal(LiteralValue::Nil)),
-            TokenKind::Identifier(name) => Ok(Expr::Variable(String::from(name))),
+            TokenKind::Identifier(_) => Ok(Expr::Variable(token.clone())),
             TokenKind::LeftParen => {
                 let expr = self.expression()?;
                 self.consume(&TokenKind::RightParen, "Expected ')' after expression.")?;

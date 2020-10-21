@@ -1,16 +1,17 @@
 use std::{cmp, io};
 
 use crate::ast::{BinaryOp, Expr, ExprVisitor, LiteralValue, Stmt, StmtVisitor, UnaryOp};
+use crate::scanner::{Token};
 use crate::environment::Environment;
 use crate::object::Object;
 use crate::result::{Error, RloxResult};
 
-pub struct Interpret<W: io::Write> {
+pub struct Interpreter<W: io::Write> {
     out: W,
     environment: Environment,
 }
 
-impl<W: io::Write> Interpret<W> {
+impl<W: io::Write> Interpreter<W> {
     pub fn new(out: W) -> Self {
         Self {
             environment: Environment::new(),
@@ -39,7 +40,7 @@ impl<W: io::Write> Interpret<W> {
     }
 }
 
-impl<W: io::Write> ExprVisitor<RloxResult<Object>> for Interpret<W> {
+impl<W: io::Write> ExprVisitor<RloxResult<Object>> for Interpreter<W> {
     fn visit_binary_expr(
         &mut self,
         left: &Expr,
@@ -129,32 +130,30 @@ impl<W: io::Write> ExprVisitor<RloxResult<Object>> for Interpret<W> {
         Ok(Object::from(value))
     }
 
-    fn visit_variable_expr(&mut self, name: &str) -> RloxResult<Object> {
-        // self.environment.get(name)
-        unimplemented!();
+    fn visit_variable_expr(&mut self, name: &Token) -> RloxResult<Object> {
+        self.environment.get(name)
     }
 }
 
-impl<W: io::Write> StmtVisitor<RloxResult<()>> for Interpret<W> {
+impl<W: io::Write> StmtVisitor<RloxResult<()>> for Interpreter<W> {
     fn visit_expression_stmt(&mut self, expr: &Expr) -> RloxResult<()> {
         self.evaluate(expr)?;
         Ok(())
     }
 
-    fn visit_var_stmt(&mut self, name: &str, intializer: &Option<Box<Expr>>) -> RloxResult<()> {
+    fn visit_var_stmt(&mut self, id: &Token, intializer: &Option<Box<Expr>>) -> RloxResult<()> {
         let value = match intializer {
             Some(expr) => self.evaluate(expr)?,
             None => Object::Nil,
         };
 
-        // TODO: Avoid string copy
-        self.environment.define(String::from(name), value);
+        self.environment.define(id, value);
         Ok(())
     }
 
     fn visit_print_stmt(&mut self, expr: &Expr) -> RloxResult<()> {
         let value = self.evaluate(expr)?;
-        writeln!(self.out, "{}", value);
+        writeln!(self.out, "{}", value).unwrap();
         Ok(())
     }
 }

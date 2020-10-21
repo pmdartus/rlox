@@ -57,6 +57,7 @@ pub enum TokenKind {
 pub struct Token {
     pub kind: TokenKind,
     pub line: usize,
+    pub lexeme: String,
 }
 
 pub struct Scanner<'a> {
@@ -259,6 +260,7 @@ impl Scanner<'_> {
         self.tokens.push(Token {
             kind: token,
             line: self.line,
+            lexeme: str::from_utf8(&self.source[self.start..self.current]).unwrap().to_owned()
         });
     }
 
