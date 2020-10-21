@@ -1,5 +1,3 @@
-use rlox;
-
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -10,12 +8,10 @@ use rlox::{interpreter::Interpreter, parser::Parser, result::Error, scanner::Sca
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() > 2 {
-        println!("Usage: rlox [script]");
-    } else if args.len() == 2 {
-        run_file(&args[1]);
-    } else {
-        run_prompt();
+    match args.len() {
+        1 => run_prompt(),
+        2 => run_file(&args[1]),
+        _ => println!("Usage: rlox [script]"),
     }
 }
 
@@ -45,12 +41,12 @@ fn run_prompt() {
         buffer.clear();
         io::stdin().read_line(&mut buffer).unwrap();
 
-        if buffer.trim().len() == 0 {
+        if buffer.trim().is_empty() {
             break;
-        } else {
-            if let Err(err) = run(&mut interpreter, &buffer) {
-                eprintln!("{}", err);
-            }
+        }
+
+        if let Err(err) = run(&mut interpreter, &buffer) {
+            eprintln!("{}", err);
         }
     }
 }

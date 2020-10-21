@@ -7,14 +7,14 @@ fn load_fixture(path: &str) -> Option<String> {
 }
 
 fn run(in_file: &str) {
-    let input =
-        load_fixture(in_file).expect(&format!("Expected fixture {} to be present.", in_file));
+    let input = load_fixture(in_file)
+        .unwrap_or_else(|| panic!("Expected fixture {} to be present.", in_file));
 
     let out_file = &format!("{}.out", in_file);
     let expected_out = load_fixture(out_file);
     let mut actual_out = vec![];
 
-    let res = rlox::evaluate(&input, &mut actual_out);
+    rlox::evaluate(&input, &mut actual_out).unwrap();
 
     // Generate actual output file is not present.
     if expected_out.is_none() {

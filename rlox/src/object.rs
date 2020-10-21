@@ -15,7 +15,7 @@ impl Object {
     pub fn is_truthy(&self) -> bool {
         match self {
             Object::Nil | Object::False => false,
-            Object::True | _ => true,
+            _ => true,
         }
     }
 }
