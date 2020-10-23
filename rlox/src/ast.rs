@@ -36,7 +36,7 @@ pub enum Expr {
     Grouping(Box<Expr>),
     Literal(LiteralValue),
     Variable(Token),
-    Assign(Token, Box<Expr>)
+    Assign(Token, Box<Expr>),
 }
 
 pub trait ExprVisitor<T> {

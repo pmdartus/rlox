@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::object::Object;
-use crate::scanner::{Token};
-use crate::result::{RloxResult, Error};
+use crate::result::{Error, RloxResult};
+use crate::scanner::Token;
 
 #[derive(Debug)]
 pub struct Environment {
@@ -23,14 +23,20 @@ impl Environment {
     pub fn get(&self, id: &Token) -> RloxResult<Object> {
         match self.values.get(&id.lexeme) {
             Some(val) => Ok((*val).clone()),
-            None => Err(Error::Runtime(id.line, format!("Undefined variable '{}'.", id.lexeme))),
+            None => Err(Error::Runtime(
+                id.line,
+                format!("Undefined variable '{}'.", id.lexeme),
+            )),
         }
     }
 
     pub fn assign(&mut self, id: &Token, value: Object) -> RloxResult<Object> {
         match self.values.insert(id.lexeme.to_owned(), value) {
             Some(_) => Ok(self.values.get(&id.lexeme).unwrap().clone()),
-            None => Err(Error::Runtime(id.line, format!("Undefined variable '{}'.", id.lexeme))),
+            None => Err(Error::Runtime(
+                id.line,
+                format!("Undefined variable '{}'.", id.lexeme),
+            )),
         }
     }
 }
