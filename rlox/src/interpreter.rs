@@ -133,6 +133,11 @@ impl<W: io::Write> ExprVisitor<RloxResult<Object>> for Interpreter<W> {
     fn visit_variable_expr(&mut self, name: &Token) -> RloxResult<Object> {
         self.environment.get(name)
     }
+
+    fn visit_assignment_expr(&mut self, id: &Token, expr: &Expr) -> RloxResult<Object> {
+        let value = self.evaluate(expr)?;
+        self.environment.assign(id, value)
+    }
 }
 
 impl<W: io::Write> StmtVisitor<RloxResult<()>> for Interpreter<W> {
