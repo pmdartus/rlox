@@ -1,10 +1,9 @@
 use std::{cmp, io};
 
-use crate::ast::{BinaryOp, Expr, ExprVisitor, LiteralValue, Stmt, StmtVisitor, UnaryOp};
+use crate::ast::{BinaryOp, Expr, ExprVisitor, LiteralValue, Stmt, StmtVisitor, Token, UnaryOp};
 use crate::environment::Environment;
 use crate::object::Object;
 use crate::result::{Error, RloxResult};
-use crate::scanner::Token;
 
 pub struct Interpreter<W: io::Write> {
     out: W,

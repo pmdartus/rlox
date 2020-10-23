@@ -1,6 +1,5 @@
-use crate::ast::{BinaryOp, Expr, LiteralValue, Stmt, UnaryOp};
+use crate::ast::{BinaryOp, Expr, LiteralValue, Stmt, Token, TokenKind, UnaryOp};
 use crate::result::{Error, RloxResult};
-use crate::scanner::{Token, TokenKind};
 
 pub struct Parser {
     tokens: Vec<Token>,

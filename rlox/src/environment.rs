@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::ast::Token;
 use crate::object::Object;
 use crate::result::{Error, RloxResult};
-use crate::scanner::Token;
 
 #[derive(Debug)]
 pub struct Environment {

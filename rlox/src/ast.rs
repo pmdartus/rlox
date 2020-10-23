@@ -1,4 +1,60 @@
-use crate::scanner::Token;
+#[derive(Debug, PartialEq, Clone)]
+pub enum TokenKind {
+    // Single-character tokens.
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Coma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Slash,
+    Star,
+
+    // One or two character tokens.
+    Bang,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+
+    // Literals.
+    Identifier(String),
+    String(String),
+    Number(f32),
+
+    // Keywords.
+    And,
+    Class,
+    Else,
+    False,
+    Function,
+    For,
+    If,
+    Nil,
+    Or,
+    Print,
+    Return,
+    Super,
+    This,
+    True,
+    Var,
+    While,
+
+    EOF,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub line: usize,
+    pub lexeme: String,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum BinaryOp {
