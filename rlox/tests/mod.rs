@@ -41,3 +41,4 @@ macro_rules! test_fixture {
 
 test_fixture!(arithmetic, "tests/fixtures/arithmetic.lox");
 test_fixture!(comparison, "tests/fixtures/comparison.lox");
+test_fixture!(variables, "tests/fixtures/variables.lox");

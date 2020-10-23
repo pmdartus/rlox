@@ -2,7 +2,7 @@ use std::{cmp, fmt};
 
 use crate::ast::LiteralValue;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Object {
     Number(f32),
     String(String),

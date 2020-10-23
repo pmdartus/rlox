@@ -36,6 +36,7 @@ pub enum Expr {
     Grouping(Box<Expr>),
     Literal(LiteralValue),
     Variable(Token),
+    Assign(Token, Box<Expr>),
 }
 
 pub trait ExprVisitor<T> {
@@ -44,6 +45,7 @@ pub trait ExprVisitor<T> {
     fn visit_grouping_expr(&mut self, expr: &Expr) -> T;
     fn visit_literal_expr(&mut self, value: &LiteralValue) -> T;
     fn visit_variable_expr(&mut self, id: &Token) -> T;
+    fn visit_assignment_expr(&mut self, id: &Token, expr: &Expr) -> T;
 }
 
 impl Expr {
@@ -54,6 +56,7 @@ impl Expr {
             Expr::Grouping(expr) => visitor.visit_grouping_expr(expr),
             Expr::Literal(value) => visitor.visit_literal_expr(value),
             Expr::Variable(id) => visitor.visit_variable_expr(id),
+            Expr::Assign(id, expr) => visitor.visit_assignment_expr(id, expr),
         }
     }
 }

@@ -260,7 +260,9 @@ impl Scanner<'_> {
         self.tokens.push(Token {
             kind: token,
             line: self.line,
-            lexeme: str::from_utf8(&self.source[self.start..self.current]).unwrap().to_owned()
+            lexeme: str::from_utf8(&self.source[self.start..self.current])
+                .unwrap()
+                .to_owned(),
         });
     }
 

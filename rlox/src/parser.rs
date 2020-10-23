@@ -100,7 +100,24 @@ impl Parser {
     }
 
     fn expression(&mut self) -> RloxResult<Expr> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> RloxResult<Expr> {
+        let expr = self.equality()?;
+
+        if TokenKind::Equal == self.peek().kind {
+            self.advance();
+            let value = self.assignment()?;
+
+            if let Expr::Variable(id) = expr {
+                return Ok(Expr::Assign(id, Box::new(value)));
+            }
+
+            return Err(self.err("Invalid assignment target."));
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> RloxResult<Expr> {
@@ -216,7 +233,6 @@ impl Parser {
 
     fn primary(&mut self) -> RloxResult<Expr> {
         let token = self.advance();
-        
         match &token.kind {
             TokenKind::Number(value) => Ok(Expr::Literal(LiteralValue::Number(*value))),
             TokenKind::String(value) => {
