@@ -8,35 +8,12 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=rlox",
-                    "--package=rlox"
+                    "--bin=rlox-cli",
+                    "--package=rlox-cli"
                 ],
-                "filter": {
-                    "name": "rlox",
-                    "kind": "bin"
-                }
             },
             "args": [],
             "cwd": "${workspaceFolder}"
         },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'rlox'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=rlox",
-                    "--package=rlox"
-                ],
-                "filter": {
-                    "name": "rlox",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        }
     ]
 }
