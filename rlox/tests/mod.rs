@@ -31,14 +31,19 @@ fn run(in_file: &str) {
 }
 
 macro_rules! test_fixture {
-    ($name: ident, $file: expr) => {
-        #[test]
-        fn $name() {
-            run($file)
-        }
-    };
+    ( $($name: ident => $file: expr),* ) => {
+        $(
+            #[test]
+            fn $name() {
+                run(&format!("tests/fixtures/{}", $file))
+            }
+        )*
+    }
 }
 
-test_fixture!(arithmetic, "tests/fixtures/arithmetic.lox");
-test_fixture!(comparison, "tests/fixtures/comparison.lox");
-test_fixture!(variables, "tests/fixtures/variables.lox");
+test_fixture! {
+    arithmetic => "arithmetic.lox",
+    comparison => "comparison.lox",
+    variables => "variables.lox",
+    scope => "scope.lox"
+}
