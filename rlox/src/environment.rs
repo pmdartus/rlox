@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use std::rc::{Rc, Weak};
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::ast::Token;
 use crate::object::Object;
@@ -49,8 +49,8 @@ impl Environment {
 
     pub fn assign(&self, id: &Token, value: Object) -> RloxResult<Object> {
         let mut values = self.values.borrow_mut();
-        
-        if let Some(_) = values.get(&id.lexeme) {
+
+        if values.get(&id.lexeme).is_some() {
             values.insert(id.lexeme.to_owned(), value.to_owned());
             return Ok(value);
         }

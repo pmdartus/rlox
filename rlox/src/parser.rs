@@ -97,7 +97,7 @@ impl Parser {
         // TODO: Invoker should consume if needed.
         self.consume(&TokenKind::LeftBrace, "Expected left bace")?;
 
-        let mut statements = vec!();
+        let mut statements = vec![];
         while self.peek().kind != TokenKind::RightBrace && !self.is_at_end() {
             statements.push(self.declaration()?);
         }

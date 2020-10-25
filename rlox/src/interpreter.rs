@@ -1,6 +1,6 @@
 use std::cmp;
 use std::io;
-use std::rc::{Rc};
+use std::rc::Rc;
 
 use crate::ast::{BinaryOp, Expr, ExprVisitor, LiteralValue, Stmt, StmtVisitor, Token, UnaryOp};
 use crate::environment::Environment;
@@ -177,7 +177,7 @@ impl<W: io::Write> StmtVisitor<RloxResult<()>> for Interpreter<W> {
         writeln!(self.out, "{}", value).unwrap();
         Ok(())
     }
-    
+
     fn visit_block_stmt(&mut self, body: &[Stmt]) -> RloxResult<()> {
         self.execute_block(body, Environment::from(&self.environment))
     }
