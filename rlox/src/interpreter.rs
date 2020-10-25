@@ -1,14 +1,15 @@
-use std::{cmp, io};
+use std::cmp;
+use std::io;
+use std::rc::Rc;
 
-use crate::ast::{BinaryOp, Expr, ExprVisitor, LiteralValue, Stmt, StmtVisitor, UnaryOp};
+use crate::ast::{BinaryOp, Expr, ExprVisitor, LiteralValue, Stmt, StmtVisitor, Token, UnaryOp};
 use crate::environment::Environment;
 use crate::object::Object;
 use crate::result::{Error, RloxResult};
-use crate::scanner::Token;
 
 pub struct Interpreter<W: io::Write> {
     out: W,
-    environment: Environment,
+    environment: Rc<Environment>,
 }
 
 impl<W: io::Write> Interpreter<W> {
@@ -29,6 +30,21 @@ impl<W: io::Write> Interpreter<W> {
 
     fn execute(&mut self, statement: &Stmt) -> RloxResult<()> {
         statement.accept(self)
+    }
+
+    fn execute_block(&mut self, body: &[Stmt], block_env: Rc<Environment>) -> RloxResult<()> {
+        let current_env = self.environment.clone();
+        self.environment = block_env;
+
+        for stmt in body {
+            if let Err(err) = self.execute(stmt) {
+                self.environment = current_env;
+                return Err(err);
+            }
+        }
+
+        self.environment = current_env;
+        Ok(())
     }
 
     fn evaluate(&mut self, expr: &Expr) -> RloxResult<Object> {
@@ -160,5 +176,9 @@ impl<W: io::Write> StmtVisitor<RloxResult<()>> for Interpreter<W> {
         let value = self.evaluate(expr)?;
         writeln!(self.out, "{}", value).unwrap();
         Ok(())
+    }
+
+    fn visit_block_stmt(&mut self, body: &[Stmt]) -> RloxResult<()> {
+        self.execute_block(body, Environment::from(&self.environment))
     }
 }

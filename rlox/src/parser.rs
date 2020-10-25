@@ -1,6 +1,5 @@
-use crate::ast::{BinaryOp, Expr, LiteralValue, Stmt, UnaryOp};
+use crate::ast::{BinaryOp, Expr, LiteralValue, Stmt, Token, TokenKind, UnaryOp};
 use crate::result::{Error, RloxResult};
-use crate::scanner::{Token, TokenKind};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -80,16 +79,31 @@ impl Parser {
     fn statement(&mut self) -> RloxResult<Stmt> {
         match self.peek().kind {
             TokenKind::Print => self.print_statement(),
+            TokenKind::LeftBrace => self.block_statement(),
             _ => self.expression_statement(),
         }
     }
 
     fn print_statement(&mut self) -> RloxResult<Stmt> {
+        // TODO: Invoker should consume if needed.
         self.consume(&TokenKind::Print, "Expected print")?;
         let expr = self.expression()?;
         self.consume(&TokenKind::Semicolon, "Expected ';' after value")?;
 
         Ok(Stmt::Print(Box::new(expr)))
+    }
+
+    fn block_statement(&mut self) -> RloxResult<Stmt> {
+        // TODO: Invoker should consume if needed.
+        self.consume(&TokenKind::LeftBrace, "Expected left bace")?;
+
+        let mut statements = vec![];
+        while self.peek().kind != TokenKind::RightBrace && !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+
+        self.consume(&TokenKind::RightBrace, "Expected '}' after block statement")?;
+        Ok(Stmt::Block(statements))
     }
 
     fn expression_statement(&mut self) -> RloxResult<Stmt> {
